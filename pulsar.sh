@@ -1,5 +1,8 @@
 #1/bin/bash
 
+mkdir -p pulsardata
+mkdir -p pulsarconf
+
 docker run -it \
 -p 6650:6650 \
 -p 8080:8080 \
