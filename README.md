@@ -104,6 +104,13 @@ cargo run --release --bin consumer -- 1 &
 cargo run --release --bin consumer -- 2 &
 ```
 
+Analytics Consumer
+
+```
+cargo run --release --bin analytics_consumer
+```
+
+
 **Viewing Output**
 
 Producers will log the messages they send.
@@ -135,6 +142,7 @@ Consumer
 Consumer 1: Received message: MyMessage { content: "Message 1 from producer 1" }
 Consumer 2: Received message: MyMessage { content: "Message 1 from producer 2" }
 ```
+
 
 **Stopping All Processes**
 
