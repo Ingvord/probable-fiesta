@@ -84,6 +84,12 @@ Build all workspace members:
 cargo build --release
 ```
 
+Build Java Streams application using maven:
+
+```
+mvn clean package
+```
+
 ## Running the Project
 
 **Start Producers**
@@ -108,6 +114,22 @@ Analytics Consumer
 
 ```
 cargo run --release --bin analytics_consumer
+```
+
+**Java Stream Application**
+
+Requires changes in the producer:
+
+```rust
+>>>>
+let topic = "user-events";
+====
+let topic = "streams-input";
+<<<<
+```
+
+```
+java -jar target/streams-1.0-SNAPSHOT.jar
 ```
 
 
@@ -141,6 +163,14 @@ Consumer
 ```
 Consumer 1: Received message: MyMessage { content: "Message 1 from producer 1" }
 Consumer 2: Received message: MyMessage { content: "Message 1 from producer 2" }
+```
+
+Java Streams Application
+```
+In  >> key: 934:        {"event_type":"click","user_id":934,"item_id":539,"timestamp":1732750026.818}
+In  >> key: 355:        {"event_type":"click","user_id":355,"item_id":82,"timestamp":1732750030.998}
+In  >> key: 920:        {"event_type":"click","user_id":920,"item_id":573,"timestamp":1732750028.854}
+In  >> key: 471:        {"event_type":"click","user_id":471,"item_id":721,"timestamp":1732750030.431}
 ```
 
 
