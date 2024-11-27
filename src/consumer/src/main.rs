@@ -1,3 +1,5 @@
+mod analytics_consumer;
+
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::message::Message;
