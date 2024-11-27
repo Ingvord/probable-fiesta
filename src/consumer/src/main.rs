@@ -1,51 +1,61 @@
-use pulsar::{DeserializeMessage, Payload, Consumer, Pulsar, SubType, TokioExecutor};
-use futures::TryStreamExt;
+use rdkafka::config::ClientConfig;
+use rdkafka::consumer::{Consumer, StreamConsumer};
+use rdkafka::message::Message;
 use serde::{Deserialize, Serialize};
+use futures::StreamExt;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct MyMessage {
-    content: String,
-}
-
-impl DeserializeMessage for MyMessage {
-    type Output = Result<Self, pulsar::Error>;
-
-    fn deserialize_message(payload: &Payload) -> Self::Output {
-        serde_json::from_slice(&payload.data)
-            .map_err(|e| pulsar::Error::Custom(e.to_string()))
-    }
+#[derive(Debug, Serialize, Deserialize)]
+struct Event {
+    event_type: String,
+    user_id: i32,
+    item_id: i32,
+    timestamp: f64,
 }
 
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let default_instance_id = "0".to_string();
-    let instance_id = args.get(1).unwrap_or(&default_instance_id);
+    let consumer: StreamConsumer = ClientConfig::new()
+        .set("group.id", "user-events-group") // Consumer group ID
+        .set("bootstrap.servers", "localhost:19092")
+        .set("enable.partition.eof", "false")
+        .create()
+        .expect("Failed to create Kafka consumer");
 
-    let addr = "pulsar://localhost:6650";
-    let pulsar: Pulsar<_> = Pulsar::builder(addr, TokioExecutor)
-        .build()
-        .await
-        .expect("Failed to create Pulsar client");
+    let topic = "user-events";
 
-    let topic = "persistent://public/default/my-topic";
-    let mut consumer: Consumer<MyMessage, _> = pulsar
-        .consumer()
-        .with_topic(topic)
-        .with_subscription_type(SubType::Shared)
-        .with_subscription("my-subscription")
-        .build()
-        .await
-        .expect("Failed to create consumer");
+    consumer
+        .subscribe(&[topic])
+        .expect("Failed to subscribe to topic");
 
-    println!("Consumer {}: Listening for messages...", instance_id);
+    println!("Consumer listening on topic: {}", topic);
 
-    while let Some(message) = consumer.try_next().await.unwrap() {
-        let payload = message.deserialize().expect("Failed to deserialize message");
-        println!(
-            "Consumer {}: Received message: {:?}",
-            instance_id, payload
-        );
-        consumer.ack(&message).await.expect("Failed to acknowledge message");
+    while let Some(result) = consumer.stream().next().await {
+        match result {
+            Ok(message) => {
+                // Extract and display the key
+                let key = match message.key() {
+                    Some(key) => String::from_utf8_lossy(key).to_string(),
+                    None => "None".to_string(),
+                };
+
+                // Extract and deserialize the payload
+                if let Some(payload) = message.payload() {
+                    match serde_json::from_slice::<Event>(payload) {
+                        Ok(event) => {
+                            println!(
+                                "Consumed event: Key = {}, Event = {:?}",
+                                key, event
+                            );
+                        }
+                        Err(err) => {
+                            eprintln!("Failed to deserialize payload: {:?}", err);
+                        }
+                    }
+                } else {
+                    eprintln!("Message payload is empty");
+                }
+            }
+            Err(err) => eprintln!("Error consuming message: {:?}", err),
+        }
     }
 }

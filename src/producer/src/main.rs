@@ -1,57 +1,56 @@
-use pulsar::{Pulsar, SerializeMessage, TokioExecutor};
-use tokio::time::{sleep, Duration};
+use rdkafka::config::ClientConfig;
+use rdkafka::producer::{FutureProducer, FutureRecord};
 use serde::{Serialize, Deserialize};
+use rand::Rng;
+use tokio::time::{sleep, Duration};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct MyMessage {
-    content: String,
-}
-
-impl SerializeMessage for MyMessage {
-    fn serialize_message(input: Self) -> Result<pulsar::producer::Message, pulsar::Error> {
-        let payload = serde_json::to_vec(&input).map_err(|e| pulsar::Error::Custom(e.to_string()))?;
-        Ok(pulsar::producer::Message {
-            payload,
-            ..Default::default()
-        })
-    }
+#[derive(Serialize, Deserialize, Debug)]
+struct Event {
+    event_type: String,
+    user_id: i32,
+    item_id: i32,
+    timestamp: f64,
 }
 
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let default_instance_id = "0".to_string();
-    let instance_id = args.get(1).unwrap_or(&default_instance_id);
+    let producer: FutureProducer = ClientConfig::new()
+        .set("bootstrap.servers", "localhost:19092")
+        .create()
+        .expect("Failed to create Kafka producer");
 
-    let addr = "pulsar://localhost:6650";
-    let pulsar: Pulsar<_> = Pulsar::builder(addr, TokioExecutor)
-        .build()
-        .await
-        .expect("Failed to create Pulsar client");
+    let topic = "user-events";
+    let mut rng = rand::thread_rng();
 
-    let topic = "persistent://public/default/my-topic";
-    let mut producer = pulsar
-        .producer()
-        .with_topic(topic)
-        .build()
-        .await
-        .expect("Failed to create producer");
-
-    let mut count = 0;
     loop {
-        let message = MyMessage {
-            content: format!("Message {} from producer {}", count, instance_id),
+        let user_id = rng.gen_range(1..=1000); // Random user ID
+        let event = Event {
+            event_type: "click".to_string(),
+            user_id,
+            item_id: rng.gen_range(1..=1000), // Random item ID
+            timestamp: chrono::Utc::now().timestamp_millis() as f64 / 1000.0, // Current timestamp
         };
 
+        let key = user_id.to_string();
+        let value = serde_json::to_string(&event).expect("Failed to serialize event");
+
+        // Send the message with the user_id as the key
         producer
-            .send_non_blocking(message.clone())
+            .send(
+                FutureRecord::to(topic)
+                    .key(&key) // Set the random key
+                    .payload(&value), // Set the event as the payload
+                Duration::from_secs(0),
+            )
             .await
-            .expect("Failed to send message");
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to send message: {:?}", e);
+                (-1, -1) // Fallback value
+            });
 
-        println!("Producer {}: Sent {:?}", instance_id, message);
-        count += 1;
+        println!("Produced event: {:?}", event);
 
-        // Throttle message production
-        sleep(Duration::from_secs(1)).await;
+        // Random delay between 0.3 and ~0.6 seconds
+        sleep(Duration::from_secs_f64(0.3 + rng.gen_range(0.0..=0.3))).await;
     }
 }
