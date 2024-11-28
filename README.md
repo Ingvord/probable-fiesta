@@ -64,8 +64,13 @@ probable-fiesta/
 │   ├── Cargo.toml
 │   └── src/
 │       └── main.rs
+├── src
+│   └── main
+│       └── java
+│           └── io.devhands.streams.BasicStream # Java Streams Application
 ├── pulsar.sh           # Script to launch Pulsar in Docker
 ├── Cargo.toml          # Workspace manifest
+├── pom.xml             # maven project for Java applications
 └── README.md           # Project documentation
 ```
 
