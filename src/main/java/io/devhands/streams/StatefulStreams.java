@@ -5,6 +5,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Produced;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,6 +58,31 @@ public class StatefulStreams {
                 Consumed.with(Serdes.String(), Serdes.String()));
 
         // ...
+        sourceStream
+
+                .filter((key, value) -> value.contains(searchPrefix))
+                .peek((key, value) -> System.out.println("In  >> key: " + key + ":\t" + value))
+                .mapValues(value -> Long.parseLong(value.substring(value.indexOf("-") + 1)))
+
+                .groupByKey()
+                // .windowedBy(
+                //     TimeWindows
+                //         .of(Duration.ofSeconds(5))
+                // //         .advanceBy(Duration.ofSeconds(2))
+                //         .grace(Duration.ofSeconds(1))
+                // )
+
+                .count()
+
+                .toStream()
+
+                // .peek((key, value) -> System.out.println("Pre << key: " + key + ":\t" + value + " ("+ (value != null ? value.getClass().getName() : "-") + ")"))
+                // .map((wk, value) -> KeyValue.pair(wk.key() +":"+ timeFormat(wk.window().end()), value))
+
+                .peek((key, value) -> System.out.println("Out << key: " + key + ":\t" + value + " ("+ (value != null ? value.getClass().getName() : "-") + ")"))
+
+                .to(outputTopic, Produced.with(Serdes.String(), Serdes.Long()))
+        ;
 
         try (KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props)) {
             final CountDownLatch shutdownLatch = new CountDownLatch(1);
