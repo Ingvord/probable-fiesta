@@ -12,6 +12,7 @@ import org.apache.kafka.streams.state.KeyValueStore;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -28,6 +29,8 @@ public class KTableStreams {
                         : new FileInputStream(streamsProperties)) {
             props.load(fis);
         }
+
+        props.put("state.dir", Paths.get(System.getProperty("user.home"),"tmp", "kafka-streams").toString());
         // props.put(StreamsConfig.APPLICATION_ID_CONFIG, "ktable-example");
         props.put("application.id", "ktable-example"); // consumer group
 

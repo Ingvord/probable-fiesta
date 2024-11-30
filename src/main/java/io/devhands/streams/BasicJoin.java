@@ -8,6 +8,7 @@ import org.apache.kafka.streams.kstream.*;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -24,6 +25,7 @@ public class BasicJoin {
             props.load(fis);
         }
 
+        props.put("state.dir", Paths.get(System.getProperty("user.home"),"tmp", "kafka-streams").toString());
         props.put("application.id", "basic-streams");
         props.put("client.id", "basic-streams-client");
         props.put("consumer.group.instance.id", "consumer-id-1");

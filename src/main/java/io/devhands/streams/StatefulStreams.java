@@ -9,6 +9,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ public class StatefulStreams {
             props.load(fis);
         }
 
+        props.put("state.dir", Paths.get(System.getProperty("user.home"),"tmp", "kafka-streams").toString());
         props.put("application.id", "stateful-app-1"); // group
         props.put("consumer.group.instance.id", "consumer-id-1");
 
