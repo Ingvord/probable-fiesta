@@ -39,7 +39,6 @@ public class StatefulStreams {
             props.load(fis);
         }
 
-        props.put("state.dir", Paths.get(System.getProperty("user.home"),"tmp", "kafka-streams").toString());
         props.put("application.id", "stateful-app-1"); // group
         props.put("consumer.group.instance.id", "consumer-id-1");
 
